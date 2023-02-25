@@ -23,18 +23,24 @@ def load_credentials():
     return data.get("email"), data.get("password")
 
 
+def setup_selenium_driver():
+    options = Options()
+    options.add_argument("start-maximized")
+    options.add_experimental_option("detach", True)
+    options.add_experimental_option("prefs", {
+        "profile.default_content_setting_values.media_stream_mic": 2,
+        "profile.default_content_setting_values.media_stream_camera": 2,
+    })
+    service = Service("chromedriver.exe")
+    return webdriver.Chrome(service=service, options=options)
+
+
 class Attend:
-    def __init__(self):
-        options = Options()
-        options.add_argument("start-maximized")
-        options.add_experimental_option("detach", True)
-        options.add_experimental_option("prefs", {
-            "profile.default_content_setting_values.media_stream_mic": 2,
-            "profile.default_content_setting_values.media_stream_camera": 2,
-        })
-        service = Service("chromedriver.exe")
-        self.browser = webdriver.Chrome(service=service, options=options)
-        self.email, self.password = load_credentials()
+    def __init__(self, **kwargs):
+        self.url = kwargs.get("google_meet_url", None)
+        self.email = kwargs.get("email", "")
+        self.password = kwargs.get("password", "")
+        self.browser = setup_selenium_driver()
 
     def authenticate(self):
         browser = self.browser
@@ -50,9 +56,11 @@ class Attend:
         pass_box.send_keys(self.password)
         pass_next_btn.click()
 
-    def join_meeting(self, url):
+    def join_meeting(self):
+        self.authenticate()
+        time.sleep(2)
         browser = self.browser
-        browser.get(url)
+        browser.get(self.url)
         time.sleep(2)
         dismiss_button = browser.find_elements("xpath", dismiss_btn_path)
         if len(dismiss_button):
@@ -67,7 +75,6 @@ class Attend:
             print("No JOIN ELEMENT does not exist yet")
 
 
-bot = Attend()
-bot.authenticate()
-time.sleep(3)
-bot.join_meeting(URL)
+email, password = load_credentials()
+bot = Attend(google_meet_url=URL, email=email, password=password)
+bot.join_meeting()
